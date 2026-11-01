@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="theme-color" content="#0a1f3d">
+    <title>Eras-Birhan Pharmaceuticals Stock Management System (EBP-SMS)</title>
+    <meta name="description" content="Comprehensive stock registration, sales, inventory tracking, deductions, review analytics, and audit management system." />
+    <meta property="og:title" content="Eras-Birhan Pharmaceuticals Stock Management System (EBP-SMS)" />
+    <meta property="og:description" content="Comprehensive stock registration, sales, inventory tracking, deductions, review analytics, and audit management system." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+</head>
+<body>
+<!-- MASTER PASSWORD & DEVICE VERIFICATION OVERLAY -->
+<div id="masterOverlay" class="master-overlay"></div>
+
+<div class="fullscreen-toggle" id="fullscreenToggle" title="Toggle Fullscreen"><i class="fas fa-expand"></i></div>
+<div class="update-icon" id="updateIcon" title="Check for Updates"><i class="fas fa-sync-alt"></i><span class="update-badge hidden" id="updateBadge">!</span></div>
+<div class="share-icon" id="shareIcon" title="Share via Telegram"><i class="fab fa-telegram-plane"></i></div>
+<div class="settings-icon" id="settingsIcon" title="Settings"><i class="fas fa-cog"></i></div>
+
+<div class="action-buttons-corner">
+  <div class="import-dropdown" id="importDropdown">
+    <button class="corner-btn green" id="importExportBtn" title="Import Data"><i class="fas fa-file-import"></i></button>
+    <div class="import-dropdown-content">
+      <a id="importExcelBtn"><i class="fas fa-file-excel"></i> Import Excel (.xlsx)</a>
+      <a id="importWordBtn"><i class="fas fa-file-word"></i> Import Word (.docx)</a>
+    </div>
+  </div>
+  <!-- Fully Functional Red Export Button -->
+  <button class="corner-btn red" id="exportDataBtn" title="Export Data"><i class="fas fa-file-export"></i></button>
+</div>
+
+<!-- EXPORT DROPDOWN PANEL -->
+<div id="exportDropdown" style="display:none; position:fixed; bottom:105px; left:10px; background:var(--primary); border:2px solid var(--accent); border-radius:10px; z-index:10002; width:310px; box-shadow:0 8px 30px rgba(0,0,0,0.7); padding:12px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid rgba(255,215,0,0.2); padding-bottom:5px;">
+    <h4 style="color:var(--accent); margin:0; font-size:14px;"><i class="fas fa-file-export"></i> Export Center</h4>
+    <span style="font-size:11px; color:var(--success); font-weight:bold;">100% Active</span>
+  </div>
+  <label style="color:var(--accent-light); font-size:11px; display:block; margin-bottom:3px;">Select Export Target:</label>
+  <select id="exportTypeSelect" style="width:100%; margin-bottom:8px; padding:6px; font-size:12px;">
+    <option value="inventory">Inventory (Current Stock)</option>
+    <option value="sales">Sales (Transaction History)</option>
+    <option value="deductions">Deductions (Stock Loss & Waste)</option>
+    <option value="audit">Audit (Audit Trail Log)</option>
+    <option value="all">Complete Pharmacy Report (All Data)</option>
+  </select>
+
+  <div id="exportFilters" style="margin-bottom:8px;">
+    <input type="text" id="exportItemFilter" placeholder="Filter by Item Name..." style="width:100%; margin-bottom:5px; padding:5px; font-size:12px;">
+    <input type="text" id="exportCategoryFilter" placeholder="Filter by Category..." style="width:100%; margin-bottom:5px; padding:5px; font-size:12px;">
+    <div class="time-filter-group" style="margin-top:5px; display:flex; flex-wrap:wrap; gap:4px;">
+      <button class="time-filter-btn export-time-filter active" data-period="all">All</button>
+      <button class="time-filter-btn export-time-filter" data-period="daily">Daily</button>
+      <button class="time-filter-btn export-time-filter" data-period="weekly">Weekly</button>
+      <button class="time-filter-btn export-time-filter" data-period="monthly">Monthly</button>
+      <button class="time-filter-btn export-time-filter" data-period="quarterly">Quarterly</button>
+      <button class="time-filter-btn export-time-filter" data-period="yearly">Yearly</button>
+      <button class="time-filter-btn export-time-filter" data-period="custom">Custom</button>
+    </div>
+    <div id="exportCustomDateRange" style="display:none; margin-top:6px; font-size:11px;">
+      <input type="date" id="exportStartDate" style="width:48%; padding:3px;"> to <input type="date" id="exportEndDate" style="width:48%; padding:3px;">
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">
+    <button id="exportExcelBtn" class="btn btn-primary" style="padding:6px; font-size:12px;"><i class="fas fa-file-excel"></i> Excel (.xlsx)</button>
+    <button id="exportWordBtn" class="btn btn-secondary" style="padding:6px; font-size:12px;"><i class="fas fa-file-word"></i> Word (.doc)</button>
+    <button id="exportCsvBtn" class="btn btn-secondary" style="padding:6px; font-size:12px;"><i class="fas fa-file-csv"></i> CSV (.csv)</button>
+    <button id="exportPdfBtn" class="btn btn-secondary" style="padding:6px; font-size:12px;"><i class="fas fa-file-pdf"></i> PDF (.pdf)</button>
+  </div>
+</div>
+
+<div class="idg-footer">IDG, ETHIOPIA, 0918203416</div>
+
+<!-- WELCOME LOGIN PAGE -->
+<div class="welcome-page" id="welcomePage">
+  <div class="welcome-content">
+    <h1 class="welcome-title editable-text" id="editableTitle">Eras-Birhan Pharmaceuticals Stock Management System (EBP-SMS)</h1>
+    <div class="welcome-owner editable-text" id="editableOwner">EBP‑SMS</div>
+    <div class="login-form">
+      <div class="login-input-group">
+        <label id="loginTypeLabel"><i class="fas fa-user-tag"></i> Login Type</label>
+        <select id="loginType" required>
+          <option value="">Select...</option>
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="login-input-group">
+        <label id="passwordLabel"><i class="fas fa-lock"></i> Password</label>
+        <input type="password" id="password" placeholder="Enter password...">
+      </div>
+      <button class="login-btn" id="loginBtn"><i class="fas fa-sign-in-alt"></i><span>Login</span></button>
+      <!-- Export and Import buttons on the Login Page -->
+      <div class="login-export-import-group">
+        <button type="button" class="login-io-btn" id="loginExportBtn" title="Authorized Export Data">
+          <i class="fas fa-file-export"></i> Export Data
+        </button>
+        <button type="button" class="login-io-btn" id="loginImportBtn" title="Authorized Import Data">
+          <i class="fas fa-file-import"></i> Import Data
+        </button>
+      </div>
+      <input type="file" id="loginImportFileInput" style="display:none;" accept=".xlsx,.xls,.json,.docx">
+      <div class="login-footer-text" id="loginFooterText">Assefa Gashaye, +251918203416</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD CONTAINER -->
+<div class="container" id="mainContainer">
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><i class="fas fa-pills"></i></div>
+      <div class="logo-text">
+        <h1 class="editable-text" id="mainHeaderTitle">Eras-Birhan Pharmaceuticals Stock Management System (EBP-SMS)</h1>
+      </div>
+    </div>
+  </header>
+  <div class="nav-buttons">
+    <button class="nav-btn customizable-btn" id="navRegisterStock"><i class="fas fa-pills"></i><span class="btn-text">Register</span></button>
+    <button class="nav-btn customizable-btn" id="navSales"><i class="fas fa-shopping-cart"></i><span class="btn-text">Sales</span></button>
+    <button class="nav-btn customizable-btn" id="navCurrentStock"><i class="fas fa-list-alt"></i><span class="btn-text">Inventory</span></button>
+    <button class="nav-btn customizable-btn" id="navReduceStock"><i class="fas fa-arrow-up"></i><span class="btn-text">Deduct</span></button>
+    <button class="nav-btn customizable-btn admin-only" id="navReview"><i class="fas fa-chart-bar"></i><span class="btn-text">Review</span></button>
+    <button class="nav-btn customizable-btn admin-only" id="navAudit"><i class="fas fa-shield-alt"></i><span class="btn-text">Audit</span></button>
+  </div>
+  <div class="pharmacy-info-container">
+    <div class="pharmacy-header">
+      <h2 class="editable-text" id="pharmacyHeaderName">Eras-Birhan Pharmaceuticals Stock Management System (EBP-SMS)</h2>
+    </div>
+    <div class="owner-name editable-text" id="pharmacyOwnerName">Assefa Gashaye, +251918203416</div>
+    <div style="text-align:center; margin-top:2rem; color:var(--gray); font-size:1.2rem;">
+      <p>© 2026 Eras‑Birhan Pharmaceuticals</p>
+    </div>
+  </div>
+</div>
+
+<!-- MULTI-TIER NOTIFICATION CENTER -->
+<div class="notification-center" id="notificationCenter">
+  <div class="notification-counter critical" id="criticalCounter" title="Urgent Alerts"><span class="count">0</span><span class="label">Urgent</span></div>
+  <div class="notification-counter warning" id="warningCounter" title="Warnings"><span class="count">0</span><span class="label">Warnings</span></div>
+  <div class="notification-counter info" id="infoCounter" title="Updates"><span class="count">0</span><span class="label">Updates</span></div>
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div class="notification-panel" id="notificationPanel">
+  <div class="notification-panel-header">
+    <h3 id="notificationPanelTitle"><i class="fas fa-bell"></i> Notifications</h3>
+    <button class="close-full-screen" id="closeNotificationPanelBtn"><i class="fas fa-times"></i></button>
+  </div>
+  <div id="notificationList"></div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<audio id="notificationSound" preload="auto"></audio>
+
+<!-- REGISTER STOCK PAGE -->
+<div class="full-screen-mode" id="registerStockPage">
+  <div class="full-screen-header">
+    <h2><i class="fas fa-pills"></i> Register Stock (<span id="registerBranchLabel">Pharmacy</span>)</h2>
+    <button class="close-full-screen"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="form-container">
+    <form id="stockForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label><i class="fas fa-hashtag"></i> Item ID</label>
+          <input type="text" id="itemIdInput" placeholder="Auto-generated or custom ID" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-capsules"></i> Generic Name *</label>
+          <input type="text" id="itemName" required placeholder="Enter generic name" list="itemNameList" autocomplete="off">
+          <datalist id="itemNameList"></datalist>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-trademark"></i> Brand Name</label>
+          <input type="text" id="brandName" placeholder="Brand/Trade name">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-tags"></i> Category</label>
+          <input list="categoryList" id="category" placeholder="Type or select category" autocomplete="off">
+          <datalist id="categoryList"></datalist>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-tag"></i> Type</label>
+          <input type="text" id="itemType" placeholder="e.g. Medicine, Device, Supplement">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-balance-scale"></i> Base Unit *</label>
+          <input type="text" id="baseUnit" list="baseUnitList" placeholder="e.g. tablet, capsule, ml" required>
+          <datalist id="baseUnitList"></datalist>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-box"></i> Register Unit *</label>
+          <input type="text" id="registeredUnit" list="registeredUnitList" placeholder="e.g. box, pack, carton" required>
+          <datalist id="registeredUnitList"></datalist>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-eye"></i> Display Unit *</label>
+          <input type="text" id="displayUnit" list="displayUnitList" placeholder="e.g. strip, bottle, piece" required>
+          <datalist id="displayUnitList"></datalist>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-exchange-alt"></i> Register to Base Factor *</label>
+          <input type="number" id="registeredToBaseFactor" min="0.0001" step="any" value="100" required title="Number of Base units in 1 Register unit (e.g. 1 Box = 100 Tablets)">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-exchange-alt"></i> Display to Base Factor *</label>
+          <input type="number" id="displayToBaseFactor" min="0.0001" step="any" value="10" required title="Number of Base units in 1 Display unit (e.g. 1 Strip = 10 Tablets)">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-calculator"></i> Quantity (Display Units) *</label>
+          <input type="number" id="qtyDisplay" min="0" step="0.01" value="0" placeholder="Enter quantity" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-boxes"></i> Qty (Base Units) / Qty (Register Units)</label>
+          <div style="display:flex; gap:6px;">
+            <input type="number" id="qtyBase" placeholder="Base Qty" min="0" step="any" title="Quantity in Base Units (e.g. Tablets)">
+            <input type="number" id="qtyRegister" placeholder="Reg Qty" min="0" step="any" title="Quantity in Register Units (e.g. Boxes)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-tag"></i> Purchase Price (per Display Unit) *</label>
+          <input type="number" id="purchasePricePerDisplay" min="0" step="0.01" value="0" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-percentage"></i> Markup % *</label>
+          <input type="number" id="markup" min="0" step="0.1" value="50.0" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-percent"></i> Discount %</label>
+          <input type="number" id="discountPercent" min="0" max="100" step="0.1" value="0">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-money-bill-wave"></i> Selling Price (per Display Unit) *</label>
+          <input type="number" id="sellingPricePerDisplay" min="0" step="0.01" value="0" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-barcode"></i> Batch Number *</label>
+          <input type="text" id="batchNumber" required placeholder="Batch/Lot #">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-calendar-alt"></i> Expiry Date *</label>
+          <input type="date" id="expiryDate" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-truck"></i> Supplier</label>
+          <input type="text" id="supplier" placeholder="Supplier name">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-file-invoice"></i> Invoice Number</label>
+          <input type="text" id="invoiceNumber" placeholder="Supplier Invoice #">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-user-check"></i> Registrant</label>
+          <input type="text" id="registrant" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-store"></i> Branch *</label>
+          <select id="branch" required>
+            <option value="pharmacy">Eras‑Birhan Pharmacy</option>
+            <option value="wholesaler">Eras‑Birhan Wholesaler</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-warehouse"></i> Warehouse</label>
+          <select id="warehouse">
+            <option value="main">Main Warehouse</option>
+            <option value="branch">Branch Warehouse</option>
+            <option value="cold">Cold Storage</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-thermometer-half"></i> Storage Conditions</label>
+          <select id="storageCondition">
+            <option value="ambient">Room Temperature (15-25°C)</option>
+            <option value="refrigerated">Refrigerated (2-8°C)</option>
+            <option value="frozen">Frozen (&lt;-20°C)</option>
+            <option value="cold-chain">Cold Chain (8-15°C)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-layer-group"></i> Shelf / Bin</label>
+          <input type="text" id="shelfBin" placeholder="e.g. A-12">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-arrow-down"></i> Min Stock (Display Units) *</label>
+          <input type="number" id="minStockDisplay" min="0" value="10" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-arrow-up"></i> Max Stock (Display Units) *</label>
+          <input type="number" id="maxStockDisplay" min="0" value="100" required>
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-redo-alt"></i> Reorder Level (Display Units) *</label>
+          <input type="number" id="reorderLevelDisplay" min="0" value="20" required>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary" id="saveBtn"><i class="fas fa-save"></i> Save Item</button>
+        <button type="button" class="btn btn-secondary" id="clearForm"><i class="fas fa-times"></i> Clear Form</button>
+      </div>
+    </form>
+  </div>
+  <div class="form-container">
+    <h3 style="color:var(--accent); margin-bottom:10px;"><i class="fas fa-history"></i> Recent Stock Registrations</h3>
+    <div class="table-container">
+      <table id="recentRegistrationsTable">
+        <thead>
+          <tr><th>Date</th><th>Item</th><th>Base Unit</th><th>Reg Unit</th><th>Display Unit</th><th>Qty (Base)</th><th>Qty (Reg)</th><th>Qty (Disp)</th><th>Batch</th><th>Expiry</th></tr>
+        </thead>
+        <tbody id="recentRegistrationsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SALES PAGE -->
+<div class="full-screen-mode" id="salesPage">
+  <div class="full-screen-header">
+    <h2><i class="fas fa-shopping-cart"></i> Sales Transaction (<span id="salesBranchLabel">Pharmacy</span>)</h2>
+    <button class="close-full-screen"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="form-container">
+    <form id="salesForm">
+      <div class="form-grid">
+        <div class="form-group"><label><i class="fas fa-calendar"></i> Date *</label><input type="date" id="salesDate" required></div>
+        <div class="form-group"><label><i class="fas fa-store"></i> Branch *</label><select id="salesBranch"><option value="pharmacy">Eras‑Birhan Pharmacy</option><option value="wholesaler">Eras‑Birhan Wholesaler</option></select></div>
+        <div class="form-group"><label><i class="fas fa-credit-card"></i> Payment Method *</label><select id="salesPaymentMethod"><option value="cash">Cash</option><option value="card">Card</option><option value="mobile">Mobile Money</option><option value="credit">Credit</option><option value="insurance">Insurance</option></select></div>
+        <div class="form-group"><label><i class="fas fa-user"></i> Customer Name</label><input type="text" id="customerName" placeholder="Walk-in or customer name"></div>
+        <div class="form-group"><label><i class="fas fa-building"></i> Customer Type</label><select id="customerType"><option value="Individual">Individual</option><option value="Pharmacy">Pharmacy</option><option value="Hospital">Hospital</option><option value="Clinic">Clinic</option><option value="Wholesale">Wholesale</option></select></div>
+        <div class="form-group"><label><i class="fas fa-user-md"></i> Salesperson *</label><input type="text" id="salesperson" required placeholder="Salesperson name"></div>
+        <div class="form-group"><label><i class="fas fa-file-invoice"></i> Invoice Number</label><input type="text" id="salesInvoiceNumber" placeholder="Auto invoice #"></div>
+      </div>
+
+      <h3 style="color:var(--accent); margin:1.2rem 0 0.8rem 0; display:flex; justify-content:space-between; align-items:center;">
+        <span><i class="fas fa-list"></i> Sales Line Items</span>
+        <button type="button" id="addSalesRow" class="btn btn-primary" style="padding:4px 12px; font-size:12px;"><i class="fas fa-plus"></i> Add Item Row</button>
+      </h3>
+
+      <div class="sales-table-wrapper">
+        <table class="sales-table" id="salesItemsTable">
+          <thead>
+            <tr><th>Item Search</th><th>Category</th><th>Type</th><th>Batch</th><th>Expiry</th><th>Quantity & Unit</th><th>Unit Price</th><th>Line Total</th><th>Markup %</th><th>Discount %</th><th>VAT %</th><th>Action</th></tr>
+          </thead>
+          <tbody id="salesItemsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="form-grid" style="margin-top:1rem;">
+        <div class="form-group"><label>Subtotal:</label><div class="value-display" id="salesSubtotal">ETB 0.00</div></div>
+        <div class="form-group"><label>Total Discount:</label><div class="value-display" id="salesTotalDiscount">ETB 0.00</div></div>
+        <div class="form-group"><label>VAT Amount:</label><div class="value-display" id="salesTotalVAT">ETB 0.00</div></div>
+        <div class="form-group"><label>Grand Total:</label><div class="value-display" id="salesGrandTotal" style="font-weight:bold; color:var(--accent);">ETB 0.00</div></div>
+        <div class="form-group"><label>Cost of Goods Sold (COGS):</label><div class="value-display" id="salesCOGS">ETB 0.00</div></div>
+        <div class="form-group"><label>Gross Profit:</label><div class="value-display" id="salesGrossProfit" style="font-weight:bold; color:var(--success);">ETB 0.00</div></div>
+        <div class="form-group"><label>Profit Margin:</label><div class="value-display" id="salesProfitMargin">0.0%</div></div>
+      </div>
+
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Finalize Sale</button>
+        <button type="button" class="btn btn-secondary" id="clearSalesForm"><i class="fas fa-times"></i> Clear Form</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent); margin-bottom:1rem;"><i class="fas fa-history"></i> Sales Transaction Ledger</h3>
+    <div class="table-container" style="max-height:350px;">
+      <table id="salesHistoryTable" style="min-width:1600px;">
+        <thead>
+          <tr><th>Date</th><th>Invoice</th><th>Item</th><th>Category</th><th>Type</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th><th>Markup</th><th>Discount</th><th>VAT</th><th>Grand Total</th><th>Profit</th><th>Margin</th><th>Customer</th><th>Payment</th><th>Salesperson</th></tr>
+        </thead>
+        <tbody id="salesHistoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY PAGE -->
+<div class="full-screen-mode" id="stockInventoryPage">
+  <div class="full-screen-header">
+    <h2><i class="fas fa-list-alt"></i> Complete Stock Inventory (<span id="inventoryBranchLabel">Pharmacy</span>)</h2>
+    <button class="close-full-screen"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="search-filter">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search by name, brand, or batch...">
+    </div>
+    <div class="sort-control">
+      <select id="inventorySortSelect">
+        <option value="default">Sort by Expiry (FEFO)</option>
+        <option value="name-asc">Name (A &rarr; Z)</option>
+        <option value="name-desc">Name (Z &rarr; A)</option>
+      </select>
+    </div>
+    <div class="filter-select"><select id="categoryFilter"><option value="">All Categories</option></select></div>
+    <div class="filter-select">
+      <select id="statusFilter">
+        <option value="">All Stock Status</option>
+        <option value="low">Low Stock (&lt; Min)</option>
+        <option value="over">Overstock (&gt; Max)</option>
+        <option value="reorder">Reorder Level (&le; Reorder)</option>
+        <option value="expiry">Near Expiry (&le; 90 days)</option>
+        <option value="expired">Expired Stock</option>
+        <option value="stockout">Out of Stock (= 0)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="balanceVerificationBtn"><i class="fas fa-check-double"></i> Verify All Balances</button>
+  </div>
+
+  <div class="table-container">
+    <table id="stockTable">
+      <thead>
+        <tr><th>Generic Name</th><th>Category</th><th>Type</th><th>Base Unit</th><th>Reg Unit</th><th>Disp Unit</th><th>Qty (Base)</th><th>Qty (Reg)</th><th>Qty (Disp)</th><th>Beg Balance</th><th>Received</th><th>Issued / Sold</th><th>End Balance</th><th>Physical Count</th><th>Variance</th><th>Min/Reorder/Max</th><th>Purchase Price</th><th>Selling Price</th><th>Markup</th><th>Total Value</th><th>Batch</th><th>Expiry</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="stockTableBody"></tbody>
+      <tfoot id="inventoryFooter"></tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- DEDUCT STOCK PAGE -->
+<div class="full-screen-mode" id="reduceStockPage">
+  <div class="full-screen-header">
+    <h2><i class="fas fa-arrow-up"></i> Deduct Stock / Record Losses (<span id="deductBranchLabel">Pharmacy</span>)</h2>
+    <button class="close-full-screen"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="form-container">
+    <form id="reduceStockForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label><i class="fas fa-box"></i> Select Stock Item *</label>
+          <select id="reduceItemSelect" required><option value="">Choose an item...</option></select>
+        </div>
+        <div class="form-group"><label>Available Stock</label><input type="text" id="reduceAvailable" readonly></div>
+        <div class="form-group"><label>Category</label><input type="text" id="reduceCategory" readonly></div>
+        <div class="form-group"><label>Type</label><input type="text" id="reduceType" readonly></div>
+        <div class="form-group">
+          <label><i class="fas fa-balance-scale"></i> Unit to Deduct *</label>
+          <select id="reduceUnitSelector">
+            <option value="displayUnit">Display Unit</option>
+            <option value="registeredUnit">Register Unit</option>
+            <option value="baseUnit">Base Unit</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Base / Reg / Disp Units</label><div style="display:flex; gap:4px;"><input type="text" id="reduceBaseUnit" readonly><input type="text" id="reduceRegUnit" readonly><input type="text" id="reduceDisplayUnit" readonly></div></div>
+        <div class="form-group"><label>Batch #</label><input type="text" id="reduceBatchNumber" readonly></div>
+        <div class="form-group"><label>Expiry Date</label><input type="text" id="reduceExpiryDate" readonly></div>
+        <div class="form-group"><label>Shelf / Bin</label><input type="text" id="reduceShelfBin" readonly></div>
+        <div class="form-group"><label><i class="fas fa-calculator"></i> Quantity to Deduct *</label><input type="number" id="reduceQtyDisplay" min="0.01" step="0.01" value="0" required></div>
+        <div class="form-group">
+          <label><i class="fas fa-exclamation-triangle"></i> Deduction Reason *</label>
+          <select id="reduceReason" required>
+            <option value="damaged">Damaged / Broken Packaging</option>
+            <option value="expired">Expired Date (Past Shelf Life)</option>
+            <option value="theft">Theft / Unaccounted Shortage</option>
+            <option value="internal">Internal Clinic / Staff Use</option>
+            <option value="donation">Charitable Donation</option>
+            <option value="return">Returned to Wholesaler/Supplier</option>
+            <option value="other">Other Operational Deduction</option>
+          </select>
+        </div>
+        <div class="form-group"><label><i class="fas fa-user"></i> Responsible Officer *</label><input type="text" id="whom" required placeholder="Name of officer"></div>
+        <div class="form-group"><label><i class="fas fa-store"></i> Branch *</label><select id="reduceBranch"><option value="pharmacy">Pharmacy</option><option value="wholesaler">Wholesaler</option></select></div>
+        <div class="form-group" style="grid-column:1 / -1;"><label>Detailed Justification Notes</label><textarea id="reduceNotes" rows="2" placeholder="Provide reason context, condition, or authorization..."></textarea></div>
+      </div>
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary" style="background:linear-gradient(145deg, var(--danger), #cc0000); color:white;"><i class="fas fa-minus-circle"></i> Confirm Stock Deduction</button>
+        <button type="button" class="btn btn-secondary" id="clearReduceForm"><i class="fas fa-times"></i> Clear</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent); margin-bottom:1rem;"><i class="fas fa-history"></i> Deduction & Loss Records</h3>
+    <div class="table-container">
+      <table id="deductionHistoryTable">
+        <thead>
+          <tr><th>Date</th><th>Item</th><th>Category</th><th>Type</th><th>Qty</th><th>Unit</th><th>Batch</th><th>Expiry</th><th>Reason</th><th>Branch</th><th>Warehouse</th><th>Storage</th><th>Shelf/Bin</th><th>Responsible</th><th>Value Lost</th></tr>
+        </thead>
+        <tbody id="deductionHistoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW PAGE -->
+<div class="full-screen-mode" id="reviewPage">
+  <div class="full-screen-header">
+    <h2><i class="fas fa-chart-bar"></i> Enterprise Review Dashboard & KPIs</h2>
+    <button class="close-full-screen"><i class="fas fa-times"></i></button>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="dashboard-card" onclick="if(window.ultraStock) window.ultraStock.openPage('stockInventoryPage')"><h3>Total Items</h3><div class="value" id="totalStockItems">0</div><div class="sub-value">Active inventory</div></div>
+    <div class="dashboard-card" onclick="if(window.ultraStock) window.ultraStock.openPage('salesPage')"><h3>Total Sales</h3><div class="value" id="totalSales">ETB 0</div><div class="sub-value">Current branch</div></div>
+    <div class="dashboard-card" onclick="if(window.ultraStock) window.ultraStock.openPage('stockInventoryPage', 'low')"><h3>Low Stock</h3><div class="value" id="lowStockItems">0</div><div class="sub-value">Below threshold</div></div>
+    <div class="dashboard-card" onclick="if(window.ultraStock) window.ultraStock.openPage('stockInventoryPage', 'reorder')"><h3>Reorder Level</h3><div class="value" id="reorderItems">0</div><div class="sub-value">Action needed</div></div>
+    <div class="dashboard-card" onclick="if(window.ultraStock) window.ultraStock.openPage('stockInventoryPage', 'expiry')"><h3>Near Expiry</h3><div class="value" id="nearExpiryItems">0</div><div class="sub-value">&le; 90 days</div></div>
+    <div class="dashboard-card" onclick="if(window.ultraStock) window.ultraStock.openPage('stockInventoryPage', 'expired')"><h3>Expired</h3><div class="value" id="expiredItems">0</div><div class="sub-value">Zero sale value</div></div>
+    <div class="dashboard-card" onclick="if(window.ultraStock) window.ultraStock.openPage('stockInventoryPage')"><h3>Inventory Value</h3><div class="value" id="totalInventoryValue">ETB 0</div><div class="sub-value">Retail worth</div></div>
+    <div class="dashboard-card"><h3>Gross Profit</h3><div class="value" id="grossProfit">ETB 0</div><div class="sub-value">Revenue - COGS</div></div>
+    <div class="dashboard-card"><h3>Net Profit</h3><div class="value" id="netProfit">ETB 0</div><div class="sub-value">Gross - Losses</div></div>
+    <div class="dashboard-card"><h3>Fast Moving</h3><div class="value" id="fastMovingItems">0</div><div class="sub-value">High velocity</div></div>
+    <div class="dashboard-card"><h3>Slow Moving</h3><div class="value" id="slowMovingItems">0</div><div class="sub-value">Low turnover</div></div>
+  </div>
+
+  <!-- Ending Balance button placed beside Stock Accuracy -->
+  <div class="accuracy-balance-row">
+    <div class="dashboard-card">
+      <h3>Stock Accuracy</h3>
+      <div class="value" id="stockAccuracy">100%</div>
+      <div class="sub-value">Variance free reconciliation</div>
+    </div>
+    <div class="ending-balance-wrapper">
+      <button id="endingBalanceBtn" class="ending-balance-btn"><i class="fas fa-calculator"></i> Ending Balance Summary</button>
+    </div>
+  </div>
+
+  <div id="endingBalancePanel" class="form-container" style="display:none; margin-top:0.5rem;">
+    <h3 style="color:var(--success); margin-bottom:6px;"><i class="fas fa-chart-line"></i> Ending Balance Live Ledger</h3>
+    <div id="endingBalanceContent"></div>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent);"><i class="fas fa-chart-pie"></i> Total Losses by Reason</h3>
+    <table class="loss-reasons-table" id="lossReasonsTable">
+      <thead><tr><th>Loss Reason</th><th>Quantity Lost</th><th>Value Lost (ETB)</th><th>% of Total Loss</th></tr></thead>
+      <tbody id="lossReasonsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent);"><i class="fas fa-balance-scale"></i> Cost vs Selling Price Comparison</h3>
+    <div class="table-container" style="max-height:280px;">
+      <table id="costSellingTable">
+        <thead><tr><th>Item</th><th>Purchase Price</th><th>Selling Price</th><th>Markup %</th><th>Profit/Unit</th><th>Margin %</th></tr></thead>
+        <tbody id="costSellingBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent);"><i class="fas fa-exclamation-circle"></i> Negative & Positive Variance Tracking</h3>
+    <div class="table-container" style="max-height:250px;">
+      <table id="varianceTrackingTable">
+        <thead><tr><th>Item</th><th>Expected Qty</th><th>Physical Qty</th><th>Variance</th><th>Variance Value</th><th>Status</th></tr></thead>
+        <tbody id="varianceTrackingBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent);"><i class="fas fa-fire"></i> Top Selling Pharmaceutical Items</h3>
+    <div class="table-container" style="max-height:240px;">
+      <table id="topItemsTable">
+        <thead><tr><th>Item</th><th>Category</th><th>Type</th><th>Qty Sold</th><th>Revenue</th><th>Profit</th><th>Margin</th></tr></thead>
+        <tbody id="topItemsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent);"><i class="fas fa-hourglass-end"></i> Expiry & Wastage Report</h3>
+    <div class="table-container" style="max-height:240px;">
+      <table id="expiryWastageTable">
+        <thead><tr><th>Item</th><th>Batch</th><th>Expiry</th><th>Days Left</th><th>Current Qty</th><th>Potential Loss</th><th>Status</th></tr></thead>
+        <tbody id="expiryWastageBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="form-container">
+    <h3 style="color:var(--accent);"><i class="fas fa-clipboard-list"></i> System Activity Log</h3>
+    <div class="table-container review-activity-log">
+      <table id="activityLogTable">
+        <thead><tr><th>Timestamp</th><th>Action</th><th>User</th><th>Item</th><th>Details</th><th>Branch</th></tr></thead>
+        <tbody id="activityLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- AUDIT PAGE -->
+<div class="full-screen-mode" id="auditPage">
+  <div class="full-screen-header">
+    <h2><i class="fas fa-shield-alt"></i> Complete Financial & Stock Audit Summary</h2>
+    <button class="close-full-screen"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="form-container">
+    <div class="audit-summary-grid">
+      <div class="audit-summary-item"><h4>Beginning Balance</h4><div class="audit-summary-value" id="auditBeginningBalance">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Stock on Hand</h4><div class="audit-summary-value" id="auditStockOnHandValue">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Ending Balance</h4><div class="audit-summary-value" id="auditEndingBalance">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Positive Variance (Items)</h4><div class="audit-summary-value" id="auditPosVarItems">0</div></div>
+      <div class="audit-summary-item"><h4>Negative Variance (Items)</h4><div class="audit-summary-value" id="auditNegVarItems">0</div></div>
+      <div class="audit-summary-item"><h4>Positive Variance (Cost)</h4><div class="audit-summary-value" id="auditPosVarCost">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Negative Variance (Cost)</h4><div class="audit-summary-value" id="auditNegVarCost">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Net Variance</h4><div class="audit-summary-value" id="auditNetVariance">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Total Losses</h4><div class="audit-summary-value" id="auditTotalLoss">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Total Gains</h4><div class="audit-summary-value" id="auditTotalGain">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Net Profit</h4><div class="audit-summary-value" id="auditNetProfit">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Gross P&L</h4><div class="audit-summary-value" id="auditGrossPL">ETB 0</div></div>
+      <div class="audit-summary-item"><h4>Accuracy %</h4><div class="audit-summary-value" id="auditAccuracy">100%</div></div>
+      <div class="audit-summary-item"><h4>Audit Status</h4><div class="audit-summary-value" id="auditStatus">Verified</div></div>
+      <div class="audit-summary-item"><h4>Recommendation</h4><div class="audit-summary-value" id="auditRecommendation">-</div></div>
+    </div>
+
+    <div class="search-filter" style="margin:1rem 0;">
+      <h3 style="color:var(--accent);"><i class="fas fa-history"></i> Immutable Audit Trail</h3>
+    </div>
+    <div class="table-container" style="max-height:400px;">
+      <table id="auditTable">
+        <thead>
+          <tr><th>Date/Time</th><th>Action</th><th>Item</th><th>Category</th><th>Type</th><th>Base Unit</th><th>Reg Unit</th><th>Display Unit</th><th>User</th><th>Qty</th><th>Value</th><th>Batch</th><th>Expiry</th><th>Invoice</th><th>Branch</th><th>Details</th></tr>
+        </thead>
+        <tbody id="auditTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="root" style="display:none;"></div>
+<script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
